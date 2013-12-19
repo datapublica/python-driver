@@ -8,7 +8,11 @@ def _make_packer(format_string):
         unpack = lambda s: struct.unpack(format_string, s)
     else:
         pack = packer.pack
-        unpack = lambda s: packer.unpack(s)[0]
+
+        def unpack(s):
+            if type(s) == int:
+                s = bytes([s])
+            return packer.unpack(s)[0]
     return pack, unpack
 
 int64_pack, int64_unpack = _make_packer('>q')

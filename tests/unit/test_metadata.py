@@ -211,8 +211,8 @@ class TestTokens(unittest.TestCase):
         self.assertEqual(str(murmur3_token), '<Murmur3Token: -9223372036854775809L>')
 
         md5_token = MD5Token(cassandra.metadata.MIN_LONG - 1)
-        self.assertEqual(md5_token.hash_fn('123'), 42767516990368493138776584305024125808L)
-        self.assertEqual(md5_token.hash_fn(str(cassandra.metadata.MAX_LONG)), 28528976619278518853815276204542453639L)
+        self.assertEqual(md5_token.hash_fn('123'), 42767516990368493138776584305024125808)
+        self.assertEqual(md5_token.hash_fn(str(cassandra.metadata.MAX_LONG)), 28528976619278518853815276204542453639)
         self.assertEqual(str(md5_token), '<MD5Token: -9223372036854775809L>')
 
         bytes_token = BytesToken(str(cassandra.metadata.MIN_LONG - 1))

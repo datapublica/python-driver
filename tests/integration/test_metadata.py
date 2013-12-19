@@ -130,9 +130,9 @@ class SchemaMetadataTest(unittest.TestCase):
         self.assertEqual(tablemeta.keyspace, ksmeta)
         self.assertEqual(tablemeta.name, self.cfname)
 
-        self.assertEqual([u'a'], [c.name for c in tablemeta.partition_key])
+        self.assertEqual(['a'], [c.name for c in tablemeta.partition_key])
         self.assertEqual([], tablemeta.clustering_key)
-        self.assertEqual([u'a', u'b', u'c'], sorted(tablemeta.columns.keys()))
+        self.assertEqual(['a', 'b', 'c'], sorted(tablemeta.columns.keys()))
 
         for option in TableMetadata.recognized_options:
             self.assertTrue(option in tablemeta.options)
@@ -145,9 +145,9 @@ class SchemaMetadataTest(unittest.TestCase):
         self.session.execute(create_statement)
         tablemeta = self.get_table_metadata()
 
-        self.assertEqual([u'a'], [c.name for c in tablemeta.partition_key])
-        self.assertEqual([u'b'], [c.name for c in tablemeta.clustering_key])
-        self.assertEqual([u'a', u'b', u'c'], sorted(tablemeta.columns.keys()))
+        self.assertEqual(['a'], [c.name for c in tablemeta.partition_key])
+        self.assertEqual(['b'], [c.name for c in tablemeta.clustering_key])
+        self.assertEqual(['a', 'b', 'c'], sorted(tablemeta.columns.keys()))
 
         self.check_create_statement(tablemeta, create_statement)
 
@@ -157,10 +157,10 @@ class SchemaMetadataTest(unittest.TestCase):
         self.session.execute(create_statement)
         tablemeta = self.get_table_metadata()
 
-        self.assertEqual([u'a'], [c.name for c in tablemeta.partition_key])
-        self.assertEqual([u'b', u'c'], [c.name for c in tablemeta.clustering_key])
+        self.assertEqual(['a'], [c.name for c in tablemeta.partition_key])
+        self.assertEqual(['b', 'c'], [c.name for c in tablemeta.clustering_key])
         self.assertEqual(
-            [u'a', u'b', u'c', u'd', u'e', u'f'],
+            ['a', 'b', 'c', 'd', 'e', 'f'],
             sorted(tablemeta.columns.keys()))
 
         self.check_create_statement(tablemeta, create_statement)
@@ -170,9 +170,9 @@ class SchemaMetadataTest(unittest.TestCase):
         self.session.execute(create_statement)
         tablemeta = self.get_table_metadata()
 
-        self.assertEqual([u'a', u'b'], [c.name for c in tablemeta.partition_key])
+        self.assertEqual(['a', 'b'], [c.name for c in tablemeta.partition_key])
         self.assertEqual([], tablemeta.clustering_key)
-        self.assertEqual([u'a', u'b', u'c'], sorted(tablemeta.columns.keys()))
+        self.assertEqual(['a', 'b', 'c'], sorted(tablemeta.columns.keys()))
 
         self.check_create_statement(tablemeta, create_statement)
 
@@ -182,9 +182,9 @@ class SchemaMetadataTest(unittest.TestCase):
         self.session.execute(create_statement)
         tablemeta = self.get_table_metadata()
 
-        self.assertEqual([u'a', u'b'], [c.name for c in tablemeta.partition_key])
-        self.assertEqual([u'c'], [c.name for c in tablemeta.clustering_key])
-        self.assertEqual([u'a', u'b', u'c', u'd', u'e'], sorted(tablemeta.columns.keys()))
+        self.assertEqual(['a', 'b'], [c.name for c in tablemeta.partition_key])
+        self.assertEqual(['c'], [c.name for c in tablemeta.clustering_key])
+        self.assertEqual(['a', 'b', 'c', 'd', 'e'], sorted(tablemeta.columns.keys()))
 
         self.check_create_statement(tablemeta, create_statement)
 
@@ -194,9 +194,9 @@ class SchemaMetadataTest(unittest.TestCase):
         self.session.execute(create_statement)
         tablemeta = self.get_table_metadata()
 
-        self.assertEqual([u'a'], [c.name for c in tablemeta.partition_key])
-        self.assertEqual([u'b'], [c.name for c in tablemeta.clustering_key])
-        self.assertEqual([u'a', u'b', u'c'], sorted(tablemeta.columns.keys()))
+        self.assertEqual(['a'], [c.name for c in tablemeta.partition_key])
+        self.assertEqual(['b'], [c.name for c in tablemeta.clustering_key])
+        self.assertEqual(['a', 'b', 'c'], sorted(tablemeta.columns.keys()))
 
         self.check_create_statement(tablemeta, create_statement)
 
@@ -206,9 +206,9 @@ class SchemaMetadataTest(unittest.TestCase):
         self.session.execute(create_statement)
         tablemeta = self.get_table_metadata()
 
-        self.assertEqual([u'a'], [c.name for c in tablemeta.partition_key])
-        self.assertEqual([u'b', u'c'], [c.name for c in tablemeta.clustering_key])
-        self.assertEqual([u'a', u'b', u'c', u'd'], sorted(tablemeta.columns.keys()))
+        self.assertEqual(['a'], [c.name for c in tablemeta.partition_key])
+        self.assertEqual(['b', 'c'], [c.name for c in tablemeta.clustering_key])
+        self.assertEqual(['a', 'b', 'c', 'd'], sorted(tablemeta.columns.keys()))
 
         self.check_create_statement(tablemeta, create_statement)
 
@@ -217,9 +217,9 @@ class SchemaMetadataTest(unittest.TestCase):
         self.session.execute(create_statement)
         tablemeta = self.get_table_metadata()
 
-        self.assertEqual([u'a', u'b'], [c.name for c in tablemeta.partition_key])
+        self.assertEqual(['a', 'b'], [c.name for c in tablemeta.partition_key])
         self.assertEqual([], tablemeta.clustering_key)
-        self.assertEqual([u'a', u'b', u'c'], sorted(tablemeta.columns.keys()))
+        self.assertEqual(['a', 'b', 'c'], sorted(tablemeta.columns.keys()))
 
         self.check_create_statement(tablemeta, create_statement)
 
@@ -229,9 +229,9 @@ class SchemaMetadataTest(unittest.TestCase):
         self.session.execute(create_statement)
         tablemeta = self.get_table_metadata()
 
-        self.assertEqual([u'a', u'b'], [c.name for c in tablemeta.partition_key])
-        self.assertEqual([u'c'], [c.name for c in tablemeta.clustering_key])
-        self.assertEqual([u'a', u'b', u'c', u'd'], sorted(tablemeta.columns.keys()))
+        self.assertEqual(['a', 'b'], [c.name for c in tablemeta.partition_key])
+        self.assertEqual(['c'], [c.name for c in tablemeta.clustering_key])
+        self.assertEqual(['a', 'b', 'c', 'd'], sorted(tablemeta.columns.keys()))
 
         self.check_create_statement(tablemeta, create_statement)
 
@@ -269,7 +269,7 @@ class SchemaMetadataTest(unittest.TestCase):
         tablemeta = self.get_table_metadata()
         statements = tablemeta.export_as_string().strip()
         statements = [s.strip() for s in statements.split(';')]
-        statements = filter(bool, statements)
+        statements = list(filter(bool, statements))
         self.assertEqual(3, len(statements))
         self.assertEqual(d_index, statements[1])
         self.assertEqual(e_index, statements[2])
@@ -283,7 +283,7 @@ class TestCodeCoverage(unittest.TestCase):
         cluster = Cluster()
         cluster.connect()
 
-        self.assertIsInstance(cluster.metadata.export_schema_as_string(), unicode)
+        self.assertIsInstance(cluster.metadata.export_schema_as_string(), str)
 
     def test_export_keyspace_schema(self):
         """
@@ -295,8 +295,8 @@ class TestCodeCoverage(unittest.TestCase):
 
         for keyspace in cluster.metadata.keyspaces:
             keyspace_metadata = cluster.metadata.keyspaces[keyspace]
-            self.assertIsInstance(keyspace_metadata.export_as_string(), unicode)
-            self.assertIsInstance(keyspace_metadata.as_cql_query(), unicode)
+            self.assertIsInstance(keyspace_metadata.export_as_string(), str)
+            self.assertIsInstance(keyspace_metadata.as_cql_query(), str)
 
     def test_already_exists_exceptions(self):
         """
@@ -372,7 +372,7 @@ class TokenMetadataTest(unittest.TestCase):
     def test_getting_replicas(self):
         tokens = [MD5Token(str(i)) for i in range(0, (2 ** 127 - 1), 2 ** 125)]
         hosts = [Host("ip%d" % i, SimpleConvictionPolicy) for i in range(len(tokens))]
-        token_to_primary_replica = dict(zip(tokens, hosts))
+        token_to_primary_replica = dict(list(zip(tokens, hosts)))
         keyspace = KeyspaceMetadata("ks", True, "SimpleStrategy", {"replication_factor": "1"})
         token_map = TokenMap(MD5Token, token_to_primary_replica, tokens, [keyspace])
 

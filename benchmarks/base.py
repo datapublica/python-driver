@@ -28,7 +28,7 @@ try:
     from cassandra.io.libevreactor import LibevConnection
     have_libev = True
     supported_reactors.append(LibevConnection)
-except ImportError, exc:
+except ImportError as exc:
     log.warning("Not benchmarking libev reactor: %s" % (exc,))
 
 KEYSPACE = "testkeyspace"

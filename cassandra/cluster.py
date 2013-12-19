@@ -8,9 +8,10 @@ import logging
 import sys
 import time
 from threading import Lock, RLock, Thread, Event
-import Queue
+import queue
 import weakref
 from weakref import WeakValueDictionary
+import collections
 try:
     from weakref import WeakSet
 except ImportError:
@@ -278,7 +279,7 @@ class Cluster(object):
         self.compression = compression
 
         if auth_provider is not None:
-            if not callable(auth_provider):
+            if not isinstance(auth_provider, collections.Callable):
                 raise ValueError("auth_provider must be callable")
             self.auth_provider = auth_provider
 
@@ -294,7 +295,7 @@ class Cluster(object):
             self.default_retry_policy = default_retry_policy
 
         if conviction_policy_factory is not None:
-            if not callable(conviction_policy_factory):
+            if not isinstance(conviction_policy_factory, collections.Callable):
                 raise ValueError("conviction_policy_factory must be callable")
             self.conviction_policy_factory = conviction_policy_factory
 
@@ -750,7 +751,7 @@ class Cluster(object):
         open, attempt to open connections until that number is met.
         """
         for session in self.sessions:
-            for pool in session._pools.values():
+            for pool in list(session._pools.values()):
                 pool.ensure_core_connections()
 
     def submit_schema_refresh(self, keyspace=None, table=None):
@@ -775,7 +776,7 @@ class Cluster(object):
                 log.debug("Error waiting for schema agreement before preparing statements against host %s", host, exc_info=True)
                 # TODO: potentially error out the connection?
 
-            statements = self._prepared_statements.values()
+            statements = list(self._prepared_statements.values())
             for keyspace, ks_statements in groupby(statements, lambda s: s.keyspace):
                 if keyspace is not None:
                     connection.set_keyspace_blocking(keyspace)
@@ -783,7 +784,7 @@ class Cluster(object):
                 # prepare 10 statements at a time
                 ks_statements = list(ks_statements)
                 chunks = []
-                for i in xrange(0, len(ks_statements), 10):
+                for i in range(0, len(ks_statements), 10):
                     chunks.append(ks_statements[i:i + 10])
 
                 for ks_chunk in chunks:
@@ -970,7 +971,7 @@ class Session(object):
 
         """
         prepared_statement = None
-        if isinstance(query, basestring):
+        if isinstance(query, str):
             query = SimpleStatement(query)
         elif isinstance(query, PreparedStatement):
             query = query.bind(parameters)
@@ -1071,7 +1072,7 @@ class Session(object):
             else:
                 self.is_shutdown = True
 
-        for pool in self._pools.values():
+        for pool in list(self._pools.values()):
             pool.shutdown()
 
     def __del__(self):
@@ -1189,7 +1190,7 @@ class Session(object):
             if not remaining_callbacks:
                 callback(host_errors)
 
-        for pool in self._pools.values():
+        for pool in list(self._pools.values()):
             pool._set_keyspace_for_all_conns(keyspace, pool_finished_setting_keyspace)
 
     def submit(self, fn, *args, **kwargs):
@@ -1197,7 +1198,7 @@ class Session(object):
         return self.cluster.executor.submit(fn, *args, **kwargs)
 
     def get_pool_state(self):
-        return dict((host, pool.get_state()) for host, pool in self._pools.items())
+        return dict((host, pool.get_state()) for host, pool in list(self._pools.items()))
 
 
 class _ControlReconnectionHandler(_ReconnectionHandler):
@@ -1638,7 +1639,7 @@ class _Scheduler(object):
     is_shutdown = False
 
     def __init__(self, executor):
-        self._scheduled = Queue.PriorityQueue()
+        self._scheduled = queue.PriorityQueue()
         self._executor = executor
 
         t = Thread(target=self.run, name="Task Scheduler")
@@ -1678,7 +1679,7 @@ class _Scheduler(object):
                     else:
                         self._scheduled.put_nowait((run_at, task))
                         break
-            except Queue.Empty:
+            except queue.Empty:
                 pass
 
             time.sleep(0.1)

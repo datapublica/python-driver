@@ -25,7 +25,7 @@ class NoConnectionsAvailable(Exception):
     pass
 
 
-class Host(object):
+class Host:
     """
     Represents a single Cassandra node.
     """
@@ -119,8 +119,11 @@ class Host(object):
         dc = (" %s" % (self._datacenter,)) if self._datacenter else ""
         return "<%s: %s%s>" % (self.__class__.__name__, self.address, dc)
 
+    def __hash__(self):
+        return hash(self.address)
 
-class _ReconnectionHandler(object):
+
+class _ReconnectionHandler:
     """
     Abstract class for attempting reconnections with a given
     schedule and scheduler.
@@ -142,7 +145,7 @@ class _ReconnectionHandler(object):
         # TODO cancel previous reconnection handlers? That's probably the job
         # of whatever created this.
 
-        first_delay = self.schedule.next()
+        first_delay = next(self.schedule)
         self.scheduler.schedule(first_delay, self.run)
 
     def run(self):
@@ -153,7 +156,7 @@ class _ReconnectionHandler(object):
         try:
             conn = self.try_reconnect()
         except Exception as exc:
-            next_delay = self.schedule.next()
+            next_delay = next(self.schedule)
             if self.on_exception(exc, next_delay):
                 self.scheduler.schedule(next_delay, self.run)
         else:

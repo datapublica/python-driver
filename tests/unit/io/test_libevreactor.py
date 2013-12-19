@@ -4,7 +4,7 @@ except ImportError:
     import unittest # noqa
 
 import errno
-from StringIO import StringIO
+from io import StringIO
 from socket import error as socket_error
 
 from mock import patch, Mock

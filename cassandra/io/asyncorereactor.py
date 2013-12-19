@@ -7,15 +7,15 @@ import sys
 from threading import Event, Lock, Thread
 import time
 import traceback
-import Queue
+import queue
 from errno import EALREADY, EINPROGRESS, EWOULDBLOCK, EINVAL, EISCONN, errorcode
 
 import asyncore
 
 try:
-    from cStringIO import StringIO
+    from io import BytesIO
 except ImportError:
-    from StringIO import StringIO  # ignore flake8 warning: # NOQA
+    from io import BytesIO # ignore flake8 warning: # NOQA
 
 try:
     import ssl
@@ -107,7 +107,7 @@ class AsyncoreConnection(Connection, asyncore.dispatcher):
         asyncore.dispatcher.__init__(self)
 
         self.connected_event = Event()
-        self._iobuf = StringIO()
+        self._iobuf = BytesIO()
 
         self._callbacks = {}
         self._push_watchers = defaultdict(set)
@@ -191,10 +191,10 @@ class AsyncoreConnection(Connection, asyncore.dispatcher):
                 return
             self.is_defunct = True
 
-        trace = traceback.format_exc(exc)
+        trace = traceback.format_exception_only(type(exc), exc)
         if trace != "None":
             log.debug("Defuncting connection (%s) to %s: %s\n%s",
-                      id(self), self.host, exc, traceback.format_exc(exc))
+                      id(self), self.host, exc, traceback.format_exception_only(type(exc), exc))
         else:
             log.debug("Defuncting connection (%s) to %s: %s",
                       id(self), self.host, exc)
@@ -206,7 +206,7 @@ class AsyncoreConnection(Connection, asyncore.dispatcher):
 
     def _error_all_callbacks(self, exc):
         new_exc = ConnectionShutdown(str(exc))
-        for cb in self._callbacks.values():
+        for cb in list(self._callbacks.values()):
             try:
                 cb(new_exc)
             except Exception:
@@ -290,7 +290,7 @@ class AsyncoreConnection(Connection, asyncore.dispatcher):
 
                         # leave leftover in current buffer
                         leftover = self._iobuf.read()
-                        self._iobuf = StringIO()
+                        self._iobuf = BytesIO()
                         self._iobuf.write(leftover)
 
                         self._total_reqd_bytes = 0
@@ -314,7 +314,7 @@ class AsyncoreConnection(Connection, asyncore.dispatcher):
         sabs = self.out_buffer_size
         if len(data) > sabs:
             chunks = []
-            for i in xrange(0, len(data), sabs):
+            for i in range(0, len(data), sabs):
                 chunks.append(data[i:i + sabs])
         else:
             chunks = [data]
@@ -339,7 +339,7 @@ class AsyncoreConnection(Connection, asyncore.dispatcher):
         if not wait_for_id:
             try:
                 request_id = self._id_queue.get_nowait()
-            except Queue.Empty:
+            except queue.Empty:
                 raise ConnectionBusy(
                     "Connection to %s is at the max number of requests" % self.host)
         else:
@@ -389,7 +389,7 @@ class AsyncoreConnection(Connection, asyncore.dispatcher):
         self.wait_for_response(RegisterMessage(event_list=[event_type]))
 
     def register_watchers(self, type_callback_dict):
-        for event_type, callback in type_callback_dict.items():
+        for event_type, callback in list(type_callback_dict.items()):
             self._push_watchers[event_type].add(callback)
         self._have_listeners = True
-        self.wait_for_response(RegisterMessage(event_list=type_callback_dict.keys()))
+        self.wait_for_response(RegisterMessage(event_list=list(type_callback_dict.keys())))

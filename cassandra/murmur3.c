@@ -192,7 +192,13 @@ static PyMethodDef murmur3_methods[] = {
     {NULL, NULL, 0, NULL}
 };
 
+struct module_state {
+    PyObject *error;
+};
+
 #if PY_MAJOR_VERSION <= 2
+# define GETSTATE(m) (&_state)
+static struct module_state _state;
 
 PyMODINIT_FUNC
 initmurmur3(void)
@@ -201,8 +207,36 @@ initmurmur3(void)
 }
 
 #else
+# define GETSTATE(m) ((struct module_state*)PyModule_GetState(m))
 
 /* Python 3.x */
 // TODO
+static int murmur3_traverse(PyObject *m, visitproc visit, void *arg) {
+    Py_VISIT(GETSTATE(m)->error);
+    return 0;
+}
+
+static int murmur3_clear(PyObject *m) {
+    Py_CLEAR(GETSTATE(m)->error);
+    return 0;
+}
+
+static struct PyModuleDef murmur3_def = {
+        PyModuleDef_HEAD_INIT,
+        "murmur3",
+        NULL,
+        sizeof(struct module_state),
+        murmur3_methods,
+        NULL,
+        murmur3_traverse,
+        murmur3_clear,
+        NULL
+};
+
+PyMODINIT_FUNC
+PyInit_murmur3(void) {
+    PyModule_Create(&murmur3_def);
+}
+
 
 #endif

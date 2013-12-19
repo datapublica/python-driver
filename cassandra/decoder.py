@@ -14,9 +14,9 @@ except ImportError:  # Python <2.7
     from cassandra.util import OrderedDict # NOQA
 
 try:
-    from cStringIO import StringIO
+    from io import BytesIO
 except ImportError:
-    from StringIO import StringIO  # ignore flake8 warning: # NOQA
+    from io import BytesIO  # ignore flake8 warning: # NOQA
 
 from cassandra import (Unavailable, WriteTimeout, ReadTimeout,
                        AlreadyExists, InvalidRequest, Unauthorized)
@@ -60,16 +60,16 @@ def tuple_factory(colnames, rows):
 
 
 def named_tuple_factory(colnames, rows):
-    Row = namedtuple('Row', map(_clean_column_name, colnames))
+    Row = namedtuple('Row', list(map(_clean_column_name, colnames)))
     return [Row(*row) for row in rows]
 
 
 def dict_factory(colnames, rows):
-    return [dict(zip(colnames, row)) for row in rows]
+    return [dict(list(zip(colnames, row))) for row in rows]
 
 
 def ordered_dict_factory(colnames, rows):
-    return [OrderedDict(zip(colnames, row)) for row in rows]
+    return [OrderedDict(list(zip(colnames, row))) for row in rows]
 
 
 _message_types_by_name = {}
@@ -82,8 +82,7 @@ class _register_msg_type(type):
             _message_types_by_opcode[cls.opcode] = cls
 
 
-class _MessageType(object):
-    __metaclass__ = _register_msg_type
+class _MessageType(object, metaclass=_register_msg_type):
     params = ()
 
     tracing = False
@@ -98,7 +97,7 @@ class _MessageType(object):
             setattr(self, pname, pval)
 
     def to_string(self, stream_id, compression=None):
-        body = StringIO()
+        body = BytesIO()
         self.send_body(body)
         body = body.getvalue()
         version = PROTOCOL_VERSION | HEADER_DIRECTION_FROM_CLIENT
@@ -109,11 +108,13 @@ class _MessageType(object):
         if self.tracing:
             flags |= 0x02
         msglen = int32_pack(len(body))
-        msg_parts = map(int8_pack, (version, flags, stream_id, self.opcode)) + [msglen, body]
-        return ''.join(msg_parts)
+        if type(body) == str:
+            body = body.encode()
+        msg_parts = list(map(int8_pack, (version, flags, stream_id, self.opcode))) + [msglen, body]
+        return b''.join(msg_parts)
 
     def send(self, f, streamid, compression=None):
-        body = StringIO()
+        body = BytesIO()
         self.send_body(body)
         body = body.getvalue()
         version = PROTOCOL_VERSION | HEADER_DIRECTION_FROM_CLIENT
@@ -124,7 +125,7 @@ class _MessageType(object):
         if self.tracing:
             flags |= 0x02
         msglen = int32_pack(len(body))
-        header = ''.join(map(int8_pack, (version, flags, streamid, self.opcode))) \
+        header = b''.join(map(int8_pack, (version, flags, streamid, self.opcode))) \
                  + msglen
         f.write(header)
         if len(body) > 0:
@@ -143,7 +144,7 @@ def decode_response(stream_id, flags, opcode, body, decompressor=None):
         body = decompressor(body)
         flags ^= 0x01
 
-    body = StringIO(body)
+    body = BytesIO(body)
     if flags & 0x02:
         trace_id = UUID(bytes=body.read(16))
         flags ^= 0x02
@@ -202,8 +203,7 @@ class ErrorMessageSubclass(_register_msg_type):
             error_classes[cls.error_code] = cls
 
 
-class ErrorMessageSub(ErrorMessage):
-    __metaclass__ = ErrorMessageSubclass
+class ErrorMessageSub(ErrorMessage, metaclass=ErrorMessageSubclass):
     error_code = None
 
 
@@ -385,7 +385,7 @@ class CredentialsMessage(_MessageType):
 
     def send_body(self, f):
         write_short(f, len(self.creds))
-        for credkey, credval in self.creds.items():
+        for credkey, credval in list(self.creds.items()):
             write_string(f, credkey)
             write_string(f, credval)
 
@@ -476,7 +476,7 @@ class ResultMessage(_MessageType):
     def recv_results_rows(cls, f):
         column_metadata = cls.recv_results_metadata(f)
         rowcount = read_int(f)
-        rows = [cls.recv_row(f, len(column_metadata)) for x in xrange(rowcount)]
+        rows = [cls.recv_row(f, len(column_metadata)) for x in range(rowcount)]
         colnames = [c[2] for c in column_metadata]
         coltypes = [c[3] for c in column_metadata]
         return (colnames, [tuple(ctype.from_binary(val) for ctype, val in zip(coltypes, row))
@@ -497,7 +497,7 @@ class ResultMessage(_MessageType):
             ksname = read_string(f)
             cfname = read_string(f)
         column_metadata = []
-        for x in xrange(colcount):
+        for x in range(colcount):
             if glob_tblspec:
                 colksname = ksname
                 colcfname = cfname
@@ -535,7 +535,7 @@ class ResultMessage(_MessageType):
 
     @staticmethod
     def recv_row(f, colcount):
-        return [read_value(f) for x in xrange(colcount)]
+        return [read_value(f) for x in range(colcount)]
 
 
 class PrepareMessage(_MessageType):
@@ -657,7 +657,7 @@ def read_binary_string(f):
 
 
 def write_string(f, s):
-    if isinstance(s, unicode):
+    if isinstance(s, str):
         s = s.encode('utf8')
     write_short(f, len(s))
     f.write(s)
@@ -670,7 +670,7 @@ def read_longstring(f):
 
 
 def write_longstring(f, s):
-    if isinstance(s, unicode):
+    if isinstance(s, str):
         s = s.encode('utf8')
     write_int(f, len(s))
     f.write(s)
@@ -678,7 +678,7 @@ def write_longstring(f, s):
 
 def read_stringlist(f):
     numstrs = read_short(f)
-    return [read_string(f) for x in xrange(numstrs)]
+    return [read_string(f) for x in range(numstrs)]
 
 
 def write_stringlist(f, stringlist):
@@ -690,7 +690,7 @@ def write_stringlist(f, stringlist):
 def read_stringmap(f):
     numpairs = read_short(f)
     strmap = {}
-    for x in xrange(numpairs):
+    for x in range(numpairs):
         k = read_string(f)
         strmap[k] = read_string(f)
     return strmap
@@ -698,7 +698,7 @@ def read_stringmap(f):
 
 def write_stringmap(f, strmap):
     write_short(f, len(strmap))
-    for k, v in strmap.items():
+    for k, v in list(strmap.items()):
         write_string(f, k)
         write_string(f, v)
 
@@ -706,7 +706,7 @@ def write_stringmap(f, strmap):
 def read_stringmultimap(f):
     numkeys = read_short(f)
     strmmap = {}
-    for x in xrange(numkeys):
+    for x in range(numkeys):
         k = read_string(f)
         strmmap[k] = read_stringlist(f)
     return strmmap
@@ -714,7 +714,7 @@ def read_stringmultimap(f):
 
 def write_stringmultimap(f, strmmap):
     write_short(f, len(strmmap))
-    for k, v in strmmap.items():
+    for k, v in list(strmmap.items()):
         write_string(f, k)
         write_stringlist(f, v)
 
@@ -760,7 +760,7 @@ def write_inet(f, addrtuple):
 
 
 def cql_quote(term):
-    if isinstance(term, unicode):
+    if isinstance(term, str):
         return "'%s'" % term.encode('utf8').replace("'", "''")
     elif isinstance(term, (str, bool)):
         return "'%s'" % str(term).replace("'", "''")
@@ -790,7 +790,7 @@ def cql_encode_object(val):
 
 def cql_encode_datetime(val):
     timestamp = calendar.timegm(val.utctimetuple())
-    return str(long(timestamp * 1e3 + getattr(val, 'microsecond', 0) / 1e3))
+    return str(int(timestamp * 1e3 + getattr(val, 'microsecond', 0) / 1e3))
 
 
 def cql_encode_date(val):
@@ -807,7 +807,7 @@ def cql_encode_map_collection(val):
                                  '%s : %s' % (
                                      cql_encode_all_types(k),
                                      cql_encode_all_types(v))
-                                 for k, v in val.iteritems())
+                                 for k, v in val.items())
 
 
 def cql_encode_list_collection(val):
@@ -826,10 +826,10 @@ cql_encoders = {
     float: cql_encode_object,
     bytearray: cql_encode_bytes,
     str: cql_encode_str,
-    unicode: cql_encode_unicode,
-    types.NoneType: cql_encode_none,
+    str: cql_encode_unicode,
+    type(None): cql_encode_none,
     int: cql_encode_object,
-    long: cql_encode_object,
+    int: cql_encode_object,
     UUID: cql_encode_object,
     datetime.datetime: cql_encode_datetime,
     datetime.date: cql_encode_date,

@@ -13,7 +13,7 @@ import weakref
 
 murmur3 = None
 try:
-    from murmur3 import murmur3
+    from cassandra.murmur3 import murmur3
 except ImportError:
     pass
 
@@ -73,7 +73,7 @@ class Metadata(object):
         Returns a string that can be executed as a query in order to recreate
         the entire schema.  The string is formatted to be human readable.
         """
-        return "\n".join(ks.export_as_string() for ks in self.keyspaces.values())
+        return "\n".join(ks.export_as_string() for ks in list(self.keyspaces.values()))
 
     def rebuild_schema(self, keyspace, table, ks_results, cf_results, col_results):
         """
@@ -109,10 +109,10 @@ class Metadata(object):
 
             if not keyspace:
                 # remove not-just-added keyspaces
-                self.keyspaces = dict((name, meta) for name, meta in self.keyspaces.items()
+                self.keyspaces = dict((name, meta) for name, meta in list(self.keyspaces.items())
                                       if name in added_keyspaces)
             if self.token_map:
-                self.token_map.rebuild(self.keyspaces.values())
+                self.token_map.rebuild(list(self.keyspaces.values()))
         else:
             # keyspace is not None, table is not None
             try:
@@ -273,7 +273,7 @@ class Metadata(object):
 
         token_to_host_owner = {}
         ring = []
-        for host, token_strings in token_map.iteritems():
+        for host, token_strings in token_map.items():
             for token_string in token_strings:
                 token = token_class(token_string)
                 ring.append(token)
@@ -282,7 +282,7 @@ class Metadata(object):
         all_tokens = sorted(ring)
         self.token_map = TokenMap(
                 token_class, token_to_host_owner, all_tokens,
-                self.keyspaces.values())
+                list(self.keyspaces.values()))
 
     def get_replicas(self, keyspace, key):
         """
@@ -320,7 +320,7 @@ class Metadata(object):
         Returns a list of all known :class:`.Host` instances in the cluster.
         """
         with self._hosts_lock:
-            return self._hosts.values()
+            return list(self._hosts.values())
 
 
 class ReplicationStrategy(object):
@@ -386,9 +386,9 @@ class NetworkTopologyStrategy(ReplicationStrategy):
         # note: this does not account for hosts having different racks
         replica_map = defaultdict(set)
         ring_len = len(ring)
-        ring_len_range = range(ring_len)
+        ring_len_range = list(range(ring_len))
         dc_rf_map = dict((dc, int(rf))
-                         for dc, rf in self.dc_replication_factors.items() if rf > 0)
+                         for dc, rf in list(self.dc_replication_factors.items()) if rf > 0)
         dcs = dict((h, h.datacenter) for h in set(token_to_host_owner.values()))
 
         for i in ring_len_range:
@@ -461,7 +461,7 @@ class KeyspaceMetadata(object):
         self.tables = {}
 
     def export_as_string(self):
-        return "\n".join([self.as_cql_query()] + [t.as_cql_query() for t in self.tables.values()])
+        return "\n".join([self.as_cql_query()] + [t.as_cql_query() for t in list(self.tables.values())])
 
     def as_cql_query(self):
         ret = "CREATE KEYSPACE %s WITH REPLICATION = %s " % \
@@ -541,7 +541,7 @@ class TableMetadata(object):
         ret = self.as_cql_query(formatted=True)
         ret += ";"
 
-        for col_meta in self.columns.values():
+        for col_meta in list(self.columns.values()):
             if col_meta.index:
                 ret += "\n%s;" % (col_meta.index.as_cql_query(),)
 
@@ -563,7 +563,7 @@ class TableMetadata(object):
             padding = ""
 
         columns = []
-        for col in self.columns.values():
+        for col in list(self.columns.values()):
             columns.append("%s %s" % (col.name, col.typestring))
 
         if len(self.partition_key) == 1 and not self.clustering_key:
@@ -611,8 +611,8 @@ class TableMetadata(object):
             cluster_str += "(%s)" % ", ".join(inner)
             option_strings.append(cluster_str)
 
-        option_strings.extend(map(self._make_option_str, self.recognized_options))
-        option_strings = filter(lambda x: x is not None, option_strings)
+        option_strings.extend(list(map(self._make_option_str, self.recognized_options)))
+        option_strings = [x for x in option_strings if x is not None]
 
         join_str = "\n    AND " if formatted else " AND "
         ret += join_str.join(option_strings)
@@ -627,12 +627,12 @@ class TableMetadata(object):
             return "%s = %s" % (name, self.protect_value(value))
 
     def protect_name(self, name):
-        if isinstance(name, unicode):
+        if isinstance(name, str):
             name = name.encode('utf8')
         return self.maybe_escape_name(name)
 
     def protect_names(self, names):
-        return map(self.protect_name, names)
+        return list(map(self.protect_name, names))
 
     def protect_value(self, value):
         if value is None:
@@ -772,7 +772,7 @@ class TokenMap(object):
             strategy = ks_metadata.replication_strategy
             if strategy is None:
                 token_to_hosts = defaultdict(set)
-                for token, host in self.token_to_host_owner.items():
+                for token, host in list(self.token_to_host_owner.items()):
                     token_to_hosts[token].add(host)
                 tokens_to_hosts_by_ks[ks_metadata.name] = token_to_hosts
             else:
@@ -856,6 +856,9 @@ class Murmur3Token(Token):
         """ `token` should be an int or string representing the token """
         self.value = int(token)
 
+    def __lt__(self, other):
+        str(type(self)) < str(type(other))
+
 
 class MD5Token(Token):
     """
@@ -878,7 +881,7 @@ class BytesToken(Token):
 
     def __init__(self, token_string):
         """ `token_string` should be string representing the token """
-        if not isinstance(token_string, basestring):
+        if not isinstance(token_string, str):
             raise TypeError(
                 "Tokens for ByteOrderedPartitioner should be strings (got %s)"
                 % (type(token_string),))

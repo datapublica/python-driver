@@ -20,7 +20,7 @@ class Runner(BenchmarkThread):
         log.error("Error on insert: %r", exc)
 
     def insert_next(self, previous_result):
-        current_num = self.num_started.next()
+        current_num = next(self.num_started)
 
         if previous_result is not initial:
             num = next(self.num_finished)
