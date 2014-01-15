@@ -259,7 +259,18 @@ class AsyncoreConnection(Connection, asyncore.dispatcher):
             while True:
                 buf = self.recv(self.in_buffer_size)
                 self._iobuf.write(buf)
-                if len(buf) < self.in_buffer_size:
+                # Always break
+                # It seems there is a bug with big packets:
+                #  - it loops and read everything
+                #  - at one point, it blocks on the read
+                #  - probably waiting to read data from the network
+                #  - however the socket is not ready
+                #  - I suppose another one is ready, full of data
+                #  - but since it's not a real parallel process (based on polling)
+                #     we are waiting for a not-yet-existing resource, blocking
+                #     all other "threads"
+                #  - by always breaking, we always poll, and read only when ready
+                if len(buf) < self.in_buffer_size or True:
                     break
         except socket.error as err:
             if err.args[0] not in NONBLOCKING:
